@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G3NIE - Portifólio</title>
+    <link rel="icon" type="image/png" href="g3nie_site_icon.png">
+    <link rel="shortcut icon" type="image/png" href="g3nie_site_icon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Cabeçalho -->
+    <header class="header">
+        <div class="logo-container">
+            <a href="index.html">
+                <img src="g3nie_logo.png" alt="Logo G3NIE" class="logo">
+            </a>
+        </div>
+
+        <button class="hamburger-menu" id="hamburger-btn" aria-label="Abrir menu" aria-expanded="false">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+
+        <nav class="navbar" id="navbar">
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="portifolio.html" class="active">Portifólio</a></li>
+                <li><a href="servico.html">Serviço</a></li>
+                <li><a href="orcamento.html">Orçamento</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Título da Página -->
+        <section class="page-hero">
+            <div class="container">
+                <h1 class="hero-title">Nossos Trabalhos</h1>
+                <p class="hero-description">
+                    Veja algumas das peças e projetos que já imprimimos por aqui
+                </p>
+            </div>
+        </section>
+
+        <!-- Galeria Dinâmica de Produtos -->
+        <section class="section">
+            <div class="container">
+                <div class="portfolio-grid" id="public-portfolio-grid">
+                    <!-- Preenchido dinamicamente via JavaScript / LocalStorage -->
+                </div>
+
+                <!-- Chamada Simples -->
+                <div style="margin-top: 3.5rem;">
+                    <div class="simple-box">
+                        <h2>Quer uma peça parecida ou personalizada?</h2>
+                        <p>Mande sua ideia para vermos as possibilidades.</p>
+                        <a href="orcamento.html" class="btn btn-primary">Fazer um Orçamento</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Rodapé Simples -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div>
+                    <img src="g3nie_logo.png" alt="Logo G3NIE" class="footer-logo">
+                    <p style="font-size: 0.9rem; margin-top: 0.3rem;">Imprimindo possibilidades para o seu futuro.</p>
+                </div>
+                <ul class="footer-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="portifolio.html">Portifólio</a></li>
+                    <li><a href="servico.html">Serviço</a></li>
+                    <li><a href="orcamento.html">Orçamento</a></li>
+                </ul>
+            </div>
+            <div class="footer-bottom">
+                <p><a href="admin.html" style="color: inherit; text-decoration: none; cursor: default;">&copy;</a> 2026 G3NIE. São Paulo - SP</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

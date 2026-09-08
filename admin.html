@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G3NIE - Painel de Gestão (Acesso Restrito)</title>
+    <link rel="icon" type="image/png" href="g3nie_site_icon.png">
+    <link rel="shortcut icon" type="image/png" href="g3nie_site_icon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Cabeçalho do Admin -->
+    <header class="header">
+        <div class="logo-container">
+            <a href="index.html">
+                <img src="g3nie_logo.png" alt="Logo G3NIE" class="logo">
+            </a>
+        </div>
+
+        <nav class="navbar">
+            <ul class="nav-links">
+                <li><a href="index.html">Voltar ao Site</a></li>
+                <li id="admin-nav-change-pass" style="display: none;"><a href="#" id="btn-change-pass">Alterar Senha</a></li>
+                <li id="admin-nav-logout" style="display: none;"><a href="#" id="btn-admin-logout" style="color: #f87171;">Sair</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Tela de Autenticação / Login (Bloqueada por Padrão) -->
+    <section class="section" id="admin-auth-screen" style="display: flex; align-items: center; justify-content: center; min-height: 70vh;">
+        <div class="container">
+            <div class="simple-box" style="max-width: 450px; padding: 2.5rem 2rem;">
+                <h2>Acesso Restrito</h2>
+                <p style="margin-bottom: 1.5rem;">Digite a senha de administrador para acessar o painel de gestão.</p>
+
+                <!-- Mensagem de Erro -->
+                <div class="alert-box" id="admin-auth-error" style="background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; margin-bottom: 1.2rem;">
+                    Senha incorreta. Tente novamente.
+                </div>
+
+                <form id="admin-login-form">
+                    <div class="form-group">
+                        <label for="admin-password-input">Senha de Acesso</label>
+                        <input type="password" id="admin-password-input" class="form-control" placeholder="Digite sua senha..." required autofocus>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                        Entrar no Painel
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Conteúdo Principal do Painel de Gestão (Oculto até Autenticar) -->
+    <main id="admin-dashboard" style="display: none;">
+        <!-- Título da Página de Gestão -->
+        <section class="page-hero">
+            <div class="container">
+                <h1 class="hero-title">Painel de Gestão</h1>
+                <p class="hero-description">
+                    Gerencie os serviços, itens do portfólio e acompanhe os orçamentos recebidos.
+                </p>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="container">
+                <!-- Barra de Abas e Ações Globais -->
+                <div class="admin-header-bar">
+                    <div class="admin-tabs">
+                        <button class="admin-tab-btn active" data-target="tab-portfolio">Portfólio</button>
+                        <button class="admin-tab-btn" data-target="tab-services">Serviços</button>
+                        <button class="admin-tab-btn" data-target="tab-quotes">Orçamentos Recebidos</button>
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-secondary btn-sm" id="btn-reset-defaults" title="Restaura os dados padrão de exemplo">
+                            Restaurar Dados de Exemplo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ========================================================
+                     ABA 1: GESTÃO DE PORTFÓLIO
+                     ======================================================== -->
+                <div class="admin-tab-content active" id="tab-portfolio">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem;">
+                        <h2 style="font-size: 1.3rem; color: var(--text-heading);">Itens do Portfólio</h2>
+                        <button class="btn btn-primary btn-sm" id="btn-add-portfolio">+ Adicionar Novo Item</button>
+                    </div>
+
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">Foto</th>
+                                    <th>Título / Peça</th>
+                                    <th>Categoria</th>
+                                    <th>Material</th>
+                                    <th>Descrição</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-portfolio-table-body">
+                                <!-- Preenchido dinamicamente pelo JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ========================================================
+                     ABA 2: GESTÃO DE SERVIÇOS
+                     ======================================================== -->
+                <div class="admin-tab-content" id="tab-services">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem;">
+                        <h2 style="font-size: 1.3rem; color: var(--text-heading);">Serviços Ofertados</h2>
+                        <button class="btn btn-primary btn-sm" id="btn-add-service">+ Adicionar Novo Serviço</button>
+                    </div>
+
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Título do Serviço</th>
+                                    <th>Descrição</th>
+                                    <th>Tópicos / Especificações</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-services-table-body">
+                                <!-- Preenchido dinamicamente pelo JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ========================================================
+                     ABA 3: GESTÃO DE ORÇAMENTOS RECEBIDOS
+                     ======================================================== -->
+                <div class="admin-tab-content" id="tab-quotes">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 1rem;">
+                        <h2 style="font-size: 1.3rem; color: var(--text-heading);">Solicitações de Orçamento</h2>
+                    </div>
+
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Cliente</th>
+                                    <th>Contato</th>
+                                    <th>Serviço</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-quotes-table-body">
+                                <!-- Preenchido dinamicamente pelo JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal Universal para Formulários e Detalhes -->
+    <div class="modal-overlay" id="admin-modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="admin-modal-title">Título do Modal</h3>
+                <button class="modal-close-btn" id="admin-modal-close">&times;</button>
+            </div>
+            <div id="admin-modal-body">
+                <!-- Conteúdo do formulário inserido dinamicamente -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>&copy; 2026 G3NIE - Área de Gestão.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
