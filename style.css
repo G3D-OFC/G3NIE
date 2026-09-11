@@ -846,6 +846,31 @@ textarea.form-control {
     color: #64748b;
 }
 
+/* Toast Notifier */
+.toast-notification {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: #0f172a;
+    color: #f8fafc;
+    border: 1px solid #38bdf8;
+    padding: 0.85rem 1.4rem;
+    border-radius: var(--radius);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 9999;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.toast-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 /* Responsividade Mobile */
 @media (max-width: 768px) {
     .header {

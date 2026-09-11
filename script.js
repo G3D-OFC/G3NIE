@@ -1,16 +1,23 @@
 // ==========================================================================
-// G3NIE - MOTOR DE DADOS, CRIPTOGRAFIA, IMAGENS E INTERAÇÕES
+// G3NIE - MOTOR DE DADOS, ARMAZENAMENTO EM NUVEM (JSONBIN) E INTERAÇÕES
 // ==========================================================================
 
-const STORAGE_KEYS = {
-    PORTFOLIO: 'g3d_portfolio_items',
-    SERVICES: 'g3d_services_items',
-    QUOTES: 'g3d_quotes_list',
-    ADMIN_PASS_HASH: 'g3d_admin_pass_hash',
-    AUTH_SESSION: 'g3d_admin_session_auth'
+// Configuração do JSONBin (Nuvem Global)
+const JSONBIN_CONFIG = {
+    BIN_ID: '6aa34e05ffd5d16053f849c5',
+    MASTER_KEY: '$2a$10$IWTT1CVau0eFDJmBDVImOOZYtxuIPf.Ox.5J/j6nTHjyBOIxJxZ06',
+    URL: 'https://api.jsonbin.io/v3/b/6aa34e05ffd5d16053f849c5'
 };
 
-// Hash criptográfico SHA-256 inicial padrão
+const STORAGE_KEYS = {
+    PORTFOLIO: 'g3nie_portfolio_items',
+    SERVICES: 'g3nie_services_items',
+    QUOTES: 'g3nie_quotes_list',
+    ADMIN_PASS_HASH: 'g3nie_admin_pass_hash',
+    AUTH_SESSION: 'g3nie_admin_session_auth'
+};
+
+// Hash criptográfico SHA-256 padrão (admin123)
 const DEFAULT_ADMIN_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
 
 // Função de Hashing SHA-256 Nativa (Web Crypto API)
@@ -21,8 +28,8 @@ async function hashString(message) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Processamento e compressão de imagens para LocalStorage (evita estouro de cota)
-function processImageFile(file, maxWidth = 800, maxHeight = 800, quality = 0.82) {
+// Processamento e compressão de imagens para JSON (evita lentidão e estouro de limite)
+function processImageFile(file, maxWidth = 800, maxHeight = 800, quality = 0.80) {
     return new Promise((resolve, reject) => {
         if (!file || !file.type.startsWith('image/')) {
             reject('Arquivo selecionado não é uma imagem válida.');
@@ -78,22 +85,14 @@ const DEFAULT_DATA = {
         },
         {
             id: 'port-2',
-            title: 'Estátua Colecionável em Resina',
-            description: 'Escultura com acabamento liso e riqueza de microdetalhes.',
-            category: 'Colecionáveis',
-            material: 'Resina Ultra HD',
+            title: 'Engrenagem Mecânica de Reposição',
+            description: 'Peça técnica para substituição industrial com alta resistência mecânica.',
+            category: 'Engenharia',
+            material: 'PETG / ABS',
             imageUrl: ''
         },
         {
             id: 'port-3',
-            title: 'Engrenagem Mecânica de Reposição',
-            description: 'Peça técnica para substituição industrial com alta resistência mecânica.',
-            category: 'Engenharia',
-            material: 'Nylon / ABS',
-            imageUrl: ''
-        },
-        {
-            id: 'port-4',
             title: 'Luminária Geométrica Paramétrica',
             description: 'Objeto de decoração impresso em filamento especial translúcido.',
             category: 'Decoração',
@@ -104,11 +103,12 @@ const DEFAULT_DATA = {
     services: [
         {
             id: 'serv-1',
-            title: '1. Impressão 3D sob Encomenda',
-            description: 'Imprimimos suas peças com base no seu arquivo 3D ou projeto, orientando na escolha do melhor material.',
+            title: '1. Impressão 3D FDM sob Encomenda',
+            description: 'Imprimimos suas peças em filamento com alta precisão e resistência mecânica adequada para o seu projeto.',
             items: [
-                'Filamentos: PLA (decorativo e geral), PETG (resistente), ABS (resistência térmica), TPU (flexível)',
-                'Resina: Para peças com muitos detalhes e acabamento super liso (miniaturas, colecionáveis)'
+                'Filamento PLA: Ideal para protótipos visuais, artigos de decoração e peças em geral',
+                'Filamento PETG: Maior resistência mecânica e térmica para uso funcional e engenharia',
+                'Filamento ABS / TPU: Peças técnicas resistentes e elementos flexíveis sob medida'
             ]
         },
         {
@@ -126,73 +126,102 @@ const DEFAULT_DATA = {
             description: 'Deixamos sua peça pronta para o uso ou apresentação final.',
             items: [
                 'Remoção cuidadosa de suportes de impressão',
-                'Lixamento básico e aplicação de primer para pintura'
+                'Lixamento básico e aplicação de primer para acabamento'
             ]
         }
     ],
-    quotes: [
-        {
-            id: 'quote-101',
-            name: 'Carlos Mendes',
-            email: 'carlos.mendes@email.com',
-            phone: '(11) 98765-4321',
-            serviceType: 'Impressão FDM',
-            material: 'PETG',
-            message: 'Preciso de 4 unidades de uma engrenagem personalizada de 60mm. Tenho arquivo .STL pronto.',
-            date: '18/08/2026 14:30',
-            status: 'Pendente'
-        },
-        {
-            id: 'quote-102',
-            name: 'Mariana Silva',
-            email: 'mariana.silva@email.com',
-            phone: '(21) 99887-1122',
-            serviceType: 'Impressão 3D FDM (Filamento)',
-            material: 'PLA Silk',
-            message: 'Cotação para impressão de uma luminária decorativa personalizada com filamento translúcido.',
-            date: '18/08/2026 16:15',
-            status: 'Em Análise'
-        }
-    ]
+    quotes: []
 };
 
-// Funções de Acesso ao LocalStorage
-function getStoredData(key, fallback) {
+// Funções de Acesso ao Cache Local
+function getLocalData(key, fallback) {
     try {
         const data = localStorage.getItem(key);
-        if (!data) {
-            localStorage.setItem(key, JSON.stringify(fallback));
-            return fallback;
-        }
+        if (!data) return fallback;
         return JSON.parse(data);
     } catch (e) {
-        console.error('Erro ao ler localStorage', e);
         return fallback;
     }
 }
 
-function setStoredData(key, data) {
+function setLocalData(key, data) {
     try {
         localStorage.setItem(key, JSON.stringify(data));
-    } catch (e) {
-        console.error('Erro ao salvar no localStorage', e);
-        if (e.name === 'QuotaExceededError') {
-            alert('Atenção: Limite de armazenamento do navegador atingido. Tente usar imagens menores.');
-        }
-    }
+    } catch (e) {}
 }
 
-// Inicializa dados padrão caso vazios
-function initDataStorage() {
-    getStoredData(STORAGE_KEYS.PORTFOLIO, DEFAULT_DATA.portfolio);
-    getStoredData(STORAGE_KEYS.SERVICES, DEFAULT_DATA.services);
-    getStoredData(STORAGE_KEYS.QUOTES, DEFAULT_DATA.quotes);
-    
-    localStorage.removeItem('g3d_admin_password');
+// ==========================================================================
+// OPERAÇÕES COM A NUVEM (JSONBIN.IO)
+// ==========================================================================
 
-    if (!localStorage.getItem(STORAGE_KEYS.ADMIN_PASS_HASH)) {
-        localStorage.setItem(STORAGE_KEYS.ADMIN_PASS_HASH, DEFAULT_ADMIN_HASH);
+// Lê os dados mais recentes da nuvem
+async function fetchCloudData() {
+    try {
+        const response = await fetch(`${JSONBIN_CONFIG.URL}/latest`, {
+            headers: {
+                'X-Master-Key': JSONBIN_CONFIG.MASTER_KEY
+            },
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data && data.record) {
+            const portfolio = Array.isArray(data.record.portfolio) ? data.record.portfolio : DEFAULT_DATA.portfolio;
+            const services = Array.isArray(data.record.services) ? data.record.services : DEFAULT_DATA.services;
+            const quotes = Array.isArray(data.record.quotes) ? data.record.quotes : [];
+
+            setLocalData(STORAGE_KEYS.PORTFOLIO, portfolio);
+            setLocalData(STORAGE_KEYS.SERVICES, services);
+            setLocalData(STORAGE_KEYS.QUOTES, quotes);
+
+            return { portfolio, services, quotes };
+        }
+    } catch (err) {
+        console.warn('Carregamento da nuvem em modo offline/cache:', err);
     }
+
+    return {
+        portfolio: getLocalData(STORAGE_KEYS.PORTFOLIO, DEFAULT_DATA.portfolio),
+        services: getLocalData(STORAGE_KEYS.SERVICES, DEFAULT_DATA.services),
+        quotes: getLocalData(STORAGE_KEYS.QUOTES, DEFAULT_DATA.quotes)
+    };
+}
+
+// Salva e sincroniza os dados na nuvem
+async function saveCloudData(partialUpdate) {
+    const currentPortfolio = partialUpdate.portfolio !== undefined ? partialUpdate.portfolio : getLocalData(STORAGE_KEYS.PORTFOLIO, DEFAULT_DATA.portfolio);
+    const currentServices = partialUpdate.services !== undefined ? partialUpdate.services : getLocalData(STORAGE_KEYS.SERVICES, DEFAULT_DATA.services);
+    const currentQuotes = partialUpdate.quotes !== undefined ? partialUpdate.quotes : getLocalData(STORAGE_KEYS.QUOTES, DEFAULT_DATA.quotes);
+
+    // Salva imediatamente no cache local
+    setLocalData(STORAGE_KEYS.PORTFOLIO, currentPortfolio);
+    setLocalData(STORAGE_KEYS.SERVICES, currentServices);
+    setLocalData(STORAGE_KEYS.QUOTES, currentQuotes);
+
+    const payload = {
+        portfolio: currentPortfolio,
+        services: currentServices,
+        quotes: currentQuotes
+    };
+
+    const response = await fetch(JSONBIN_CONFIG.URL, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Master-Key': JSONBIN_CONFIG.MASTER_KEY
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        throw new Error(`Erro ao salvar na nuvem (${response.status})`);
+    }
+
+    return await response.json();
 }
 
 // Toast Notifier
@@ -211,7 +240,7 @@ function showToast(message) {
     }, 3000);
 }
 
-// Função para escapar caracteres especiais em HTML e evitar quebras
+// Função para escapar caracteres especiais em HTML
 function escapeHtml(text) {
     if (!text) return '';
     return String(text)
@@ -241,87 +270,102 @@ window.handleCardImgError = function(img, title) {
 // RENDERIZAÇÃO DAS PÁGINAS PÚBLICAS
 // ==========================================================================
 
+const svgIcon = `<svg viewBox="0 0 24 24"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15z"/></svg>`;
+
+function generateCardHtml(item) {
+    const titleEsc = escapeHtml(item.title);
+    const descEsc = escapeHtml(item.description);
+    const catEsc = escapeHtml(item.category);
+    const matEsc = escapeHtml(item.material);
+    const imgUrl = item.imageUrl ? String(item.imageUrl).trim() : '';
+
+    const hasValidImg = imgUrl.length > 0;
+    const imageElement = hasValidImg
+        ? `<img src="${escapeHtml(imgUrl)}" alt="${titleEsc}" class="portfolio-card-img" onerror="handleCardImgError(this, '${titleEsc.replace(/'/g, "\\'")}')">`
+        : `<div class="img-placeholder">${svgIcon}<span>[ ${titleEsc} ]</span></div>`;
+
+    const badgeHtml = catEsc ? `<span class="portfolio-card-badge">${catEsc}</span>` : '';
+    const metaHtml = matEsc ? `<div class="portfolio-meta"><span><strong>Material:</strong> ${matEsc}</span></div>` : '';
+
+    return `
+        <div class="portfolio-card" data-id="${item.id}">
+            <div class="portfolio-card-img-wrapper">
+                ${imageElement}
+                ${badgeHtml}
+            </div>
+            <div class="portfolio-info">
+                <h3 class="portfolio-title">${titleEsc}</h3>
+                <p class="portfolio-desc">${descEsc}</p>
+                ${metaHtml}
+            </div>
+        </div>
+    `;
+}
+
 // 1. Renderiza Portfólio (portifolio.html e index.html)
-function renderPublicPortfolio() {
+async function renderPublicPortfolio() {
     const gallery = document.getElementById('public-portfolio-grid');
     const homePreview = document.getElementById('home-portfolio-preview');
-    const portfolio = getStoredData(STORAGE_KEYS.PORTFOLIO, DEFAULT_DATA.portfolio);
+    if (!gallery && !homePreview) return;
 
-    const svgIcon = `<svg viewBox="0 0 24 24"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.991.991 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88v9zM12 4.15L6.04 7.5 12 10.85l5.96-3.35L12 4.15z"/></svg>`;
-
-    function generateCardHtml(item) {
-        const titleEsc = escapeHtml(item.title);
-        const descEsc = escapeHtml(item.description);
-        const catEsc = escapeHtml(item.category);
-        const matEsc = escapeHtml(item.material);
-        const imgUrl = item.imageUrl ? String(item.imageUrl).trim() : '';
-
-        const hasValidImg = imgUrl.length > 0;
-        const imageElement = hasValidImg
-            ? `<img src="${escapeHtml(imgUrl)}" alt="${titleEsc}" class="portfolio-card-img" onerror="handleCardImgError(this, '${titleEsc.replace(/'/g, "\\'")}')">`
-            : `<div class="img-placeholder">${svgIcon}<span>[ ${titleEsc} ]</span></div>`;
-
-        const badgeHtml = catEsc ? `<span class="portfolio-card-badge">${catEsc}</span>` : '';
-        const metaHtml = matEsc ? `<div class="portfolio-meta"><span><strong>Material:</strong> ${matEsc}</span></div>` : '';
-
-        return `
-            <div class="portfolio-card" data-id="${item.id}">
-                <div class="portfolio-card-img-wrapper">
-                    ${imageElement}
-                    ${badgeHtml}
-                </div>
-                <div class="portfolio-info">
-                    <h3 class="portfolio-title">${titleEsc}</h3>
-                    <p class="portfolio-desc">${descEsc}</p>
-                    ${metaHtml}
-                </div>
-            </div>
-        `;
-    }
-
-    if (gallery) {
-        if (portfolio.length === 0) {
-            gallery.innerHTML = `<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center;">Nenhum item cadastrado no portfólio no momento.</p>`;
-        } else {
-            gallery.innerHTML = portfolio.map(generateCardHtml).join('');
+    function updateDOM(items) {
+        if (gallery) {
+            gallery.innerHTML = items.length === 0
+                ? `<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center;">Nenhum item cadastrado no portfólio no momento.</p>`
+                : items.map(generateCardHtml).join('');
+        }
+        if (homePreview) {
+            const recent = items.slice(0, 3);
+            homePreview.innerHTML = recent.length === 0
+                ? `<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center;">Nenhum trabalho recente para exibir.</p>`
+                : recent.map(generateCardHtml).join('');
         }
     }
 
-    if (homePreview) {
-        const recentItems = portfolio.slice(0, 3);
-        if (recentItems.length === 0) {
-            homePreview.innerHTML = `<p style="color: var(--text-muted); grid-column: 1/-1; text-align: center;">Nenhum trabalho recente para exibir.</p>`;
-        } else {
-            homePreview.innerHTML = recentItems.map(generateCardHtml).join('');
-        }
+    // Renderização inicial instantânea via cache
+    updateDOM(getLocalData(STORAGE_KEYS.PORTFOLIO, DEFAULT_DATA.portfolio));
+
+    // Atualização em segundo plano a partir da nuvem
+    const cloud = await fetchCloudData();
+    if (cloud && cloud.portfolio) {
+        updateDOM(cloud.portfolio);
     }
 }
 
 // 2. Renderiza Serviços (servico.html)
-function renderPublicServices() {
+async function renderPublicServices() {
     const servicesList = document.getElementById('public-services-list');
     if (!servicesList) return;
 
-    const services = getStoredData(STORAGE_KEYS.SERVICES, DEFAULT_DATA.services);
+    function updateDOM(services) {
+        if (services.length === 0) {
+            servicesList.innerHTML = `<p style="color: var(--text-muted); text-align: center;">Nenhum serviço cadastrado no momento.</p>`;
+            return;
+        }
 
-    if (services.length === 0) {
-        servicesList.innerHTML = `<p style="color: var(--text-muted); text-align: center;">Nenhum serviço cadastrado no momento.</p>`;
-        return;
+        servicesList.innerHTML = services.map(srv => {
+            const itemsHtml = srv.items && srv.items.length > 0 
+                ? `<ul class="service-items-list">${srv.items.map(it => `<li>${escapeHtml(it)}</li>`).join('')}</ul>`
+                : '';
+
+            return `
+                <div class="service-block" data-id="${srv.id}">
+                    <h3>${escapeHtml(srv.title)}</h3>
+                    <p>${escapeHtml(srv.description)}</p>
+                    ${itemsHtml}
+                </div>
+            `;
+        }).join('');
     }
 
-    servicesList.innerHTML = services.map(srv => {
-        const itemsHtml = srv.items && srv.items.length > 0 
-            ? `<ul class="service-items-list">${srv.items.map(it => `<li>${it}</li>`).join('')}</ul>`
-            : '';
+    // Renderização inicial instantânea via cache
+    updateDOM(getLocalData(STORAGE_KEYS.SERVICES, DEFAULT_DATA.services));
 
-        return `
-            <div class="service-block" data-id="${srv.id}">
-                <h3>${srv.title}</h3>
-                <p>${srv.description}</p>
-                ${itemsHtml}
-            </div>
-        `;
-    }).join('');
+    // Atualização em segundo plano a partir da nuvem
+    const cloud = await fetchCloudData();
+    if (cloud && cloud.services) {
+        updateDOM(cloud.services);
+    }
 }
 
 // 3. Inicializa Formulário de Orçamento (orcamento.html)
@@ -329,7 +373,7 @@ function initQuoteForm() {
     const form = document.getElementById('quote-request-form');
     if (!form) return;
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const name = document.getElementById('quote-name').value.trim();
@@ -352,27 +396,44 @@ function initQuoteForm() {
             name,
             email,
             phone: phone || 'Não informado',
-            serviceType: serviceType || 'Geral',
+            serviceType: serviceType || 'Impressão 3D FDM (Filamento)',
             material: material || 'A definir',
             message,
             date: formattedDate,
             status: 'Pendente'
         };
 
-        const quotes = getStoredData(STORAGE_KEYS.QUOTES, DEFAULT_DATA.quotes);
-        quotes.unshift(newQuote);
-        setStoredData(STORAGE_KEYS.QUOTES, quotes);
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Enviando...';
+        }
 
-        form.reset();
+        try {
+            const currentQuotes = getLocalData(STORAGE_KEYS.QUOTES, DEFAULT_DATA.quotes);
+            currentQuotes.unshift(newQuote);
+            await saveCloudData({ quotes: currentQuotes });
 
-        const alertBox = document.getElementById('quote-success-alert');
-        if (alertBox) {
-            alertBox.style.display = 'block';
-            setTimeout(() => {
-                alertBox.style.display = 'none';
-            }, 6000);
-        } else {
+            form.reset();
+
+            const alertBox = document.getElementById('quote-success-alert');
+            if (alertBox) {
+                alertBox.style.display = 'block';
+                alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setTimeout(() => {
+                    alertBox.style.display = 'none';
+                }, 7000);
+            } else {
+                showToast('Orçamento enviado com sucesso!');
+            }
+        } catch (err) {
+            console.error('Erro ao salvar orçamento:', err);
             showToast('Orçamento enviado com sucesso!');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Enviar Solicitação de Orçamento';
+            }
         }
     });
 }
@@ -412,16 +473,40 @@ function initAdminPanel() {
         modalOverlay.classList.remove('active');
     }
 
-    if (modalCloseBtn) {
-        modalCloseBtn.addEventListener('click', closeModal);
-    }
+    if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeModal);
     if (modalOverlay) {
         modalOverlay.addEventListener('click', (e) => {
             if (e.target === modalOverlay) closeModal();
         });
     }
 
-    // Verifica se já está autenticado na sessão atual
+    // Variáveis de estado local do painel
+    let portfolioData = [];
+    let servicesData = [];
+    let quotesData = [];
+
+    // Carrega dados e atualiza a interface
+    async function loadAdminData() {
+        portfolioData = getLocalData(STORAGE_KEYS.PORTFOLIO, DEFAULT_DATA.portfolio);
+        servicesData = getLocalData(STORAGE_KEYS.SERVICES, DEFAULT_DATA.services);
+        quotesData = getLocalData(STORAGE_KEYS.QUOTES, DEFAULT_DATA.quotes);
+
+        renderAdminPortfolio();
+        renderAdminServices();
+        renderAdminQuotes();
+
+        const cloud = await fetchCloudData();
+        if (cloud) {
+            portfolioData = cloud.portfolio;
+            servicesData = cloud.services;
+            quotesData = cloud.quotes;
+            renderAdminPortfolio();
+            renderAdminServices();
+            renderAdminQuotes();
+        }
+    }
+
+    // Verifica autenticação
     function checkAuth() {
         const isAuth = sessionStorage.getItem(STORAGE_KEYS.AUTH_SESSION) === 'true';
         if (isAuth) {
@@ -430,9 +515,7 @@ function initAdminPanel() {
             if (navLogout) navLogout.style.display = 'inline-block';
             if (navChangePass) navChangePass.style.display = 'inline-block';
 
-            renderAdminPortfolio();
-            renderAdminServices();
-            renderAdminQuotes();
+            loadAdminData();
         } else {
             authScreen.style.display = 'flex';
             adminDashboard.style.display = 'none';
@@ -442,7 +525,7 @@ function initAdminPanel() {
         }
     }
 
-    // Login Submit com Criptografia SHA-256
+    // Login Submit com Hashing SHA-256
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -475,7 +558,7 @@ function initAdminPanel() {
         });
     }
 
-    // Alterar Senha com Criptografia SHA-256
+    // Alterar Senha
     if (btnChangePass) {
         btnChangePass.addEventListener('click', (e) => {
             e.preventDefault();
@@ -554,14 +637,12 @@ function initAdminPanel() {
         const tableBody = document.getElementById('admin-portfolio-table-body');
         if (!tableBody) return;
 
-        const portfolio = getStoredData(STORAGE_KEYS.PORTFOLIO, DEFAULT_DATA.portfolio);
-
-        if (portfolio.length === 0) {
+        if (portfolioData.length === 0) {
             tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Nenhum item cadastrado no portfólio.</td></tr>`;
             return;
         }
 
-        tableBody.innerHTML = portfolio.map(item => {
+        tableBody.innerHTML = portfolioData.map(item => {
             const safeTitle = escapeHtml(item.title);
             const thumbHtml = item.imageUrl
                 ? `<img src="${escapeHtml(item.imageUrl)}" class="admin-thumb" alt="${safeTitle}" onerror="this.outerHTML='<span class=\\'admin-thumb-placeholder\\'>Sem foto</span>'">`
@@ -588,23 +669,23 @@ function initAdminPanel() {
         tableBody.querySelectorAll('.edit-portfolio-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.getAttribute('data-id');
-                const item = portfolio.find(p => p.id === id);
+                const item = portfolioData.find(p => p.id === id);
                 if (!item) return;
 
                 openModal('Editar Item do Portfólio', `
                     <form id="form-edit-portfolio">
                         <div class="form-group">
                             <label>Título do Projeto / Peça *</label>
-                            <input type="text" id="edit-port-title" class="form-control" value="${item.title}" required>
+                            <input type="text" id="edit-port-title" class="form-control" value="${escapeHtml(item.title)}" required>
                         </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Categoria</label>
-                                <input type="text" id="edit-port-category" class="form-control" value="${item.category || ''}" placeholder="Ex: Prototipagem, Decoração">
+                                <input type="text" id="edit-port-category" class="form-control" value="${escapeHtml(item.category || '')}" placeholder="Ex: Prototipagem, Decoração">
                             </div>
                             <div class="form-group">
                                 <label>Material</label>
-                                <input type="text" id="edit-port-material" class="form-control" value="${item.material || ''}" placeholder="Ex: PLA, PETG, Resina">
+                                <input type="text" id="edit-port-material" class="form-control" value="${escapeHtml(item.material || '')}" placeholder="Ex: PLA, PETG, ABS">
                             </div>
                         </div>
 
@@ -618,13 +699,13 @@ function initAdminPanel() {
                                 </div>
                                 <div>
                                     <span style="font-size: 0.8rem; color: var(--text-muted);">Opção 2: Ou digite o caminho/link da imagem</span>
-                                    <input type="text" id="edit-port-image-url" class="form-control" value="${item.imageUrl || ''}" placeholder="Ex: g3nie_logo.png ou https://..." style="margin-top: 0.3rem;">
+                                    <input type="text" id="edit-port-image-url" class="form-control" value="${escapeHtml(item.imageUrl || '')}" placeholder="Ex: g3nie_logo.png ou https://..." style="margin-top: 0.3rem;">
                                 </div>
                             </div>
                             
                             <!-- Prévia Visual da Imagem -->
                             <div id="edit-preview-box" class="image-preview-container" style="${item.imageUrl ? '' : 'display: none;'}">
-                                <img id="edit-preview-img" src="${item.imageUrl || ''}" class="image-preview-thumb" alt="Prévia">
+                                <img id="edit-preview-img" src="${escapeHtml(item.imageUrl || '')}" class="image-preview-thumb" alt="Prévia">
                                 <div>
                                     <span style="font-size: 0.85rem; color: #38bdf8;">Imagem carregada</span>
                                     <br>
@@ -635,11 +716,11 @@ function initAdminPanel() {
 
                         <div class="form-group">
                             <label>Descrição *</label>
-                            <textarea id="edit-port-desc" class="form-control" required>${item.description}</textarea>
+                            <textarea id="edit-port-desc" class="form-control" required>${escapeHtml(item.description)}</textarea>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" id="btn-cancel-port">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                            <button type="submit" class="btn btn-primary" id="btn-submit-edit-port">Salvar Alterações</button>
                         </div>
                     </form>
                 `);
@@ -687,31 +768,49 @@ function initAdminPanel() {
                 });
 
                 document.getElementById('btn-cancel-port').addEventListener('click', closeModal);
-                document.getElementById('form-edit-portfolio').addEventListener('submit', (e) => {
+                document.getElementById('form-edit-portfolio').addEventListener('submit', async (e) => {
                     e.preventDefault();
+                    const submitBtn = document.getElementById('btn-submit-edit-port');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Salvando na nuvem...';
+
                     item.title = document.getElementById('edit-port-title').value.trim();
                     item.category = document.getElementById('edit-port-category').value.trim();
                     item.material = document.getElementById('edit-port-material').value.trim();
                     item.imageUrl = currentImageData;
                     item.description = document.getElementById('edit-port-desc').value.trim();
 
-                    setStoredData(STORAGE_KEYS.PORTFOLIO, portfolio);
-                    closeModal();
-                    renderAdminPortfolio();
-                    showToast('Item do portfólio atualizado com sucesso!');
+                    try {
+                        await saveCloudData({ portfolio: portfolioData });
+                        closeModal();
+                        renderAdminPortfolio();
+                        showToast('Item atualizado com sucesso na nuvem!');
+                    } catch (err) {
+                        console.error('Erro ao salvar na nuvem:', err);
+                        alert('Aviso: As alterações foram salvas localmente, mas houve uma falha ao enviar para o servidor: ' + err.message);
+                        closeModal();
+                        renderAdminPortfolio();
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Salvar Alterações';
+                    }
                 });
             });
         });
 
         // Eventos de Excluir
         tableBody.querySelectorAll('.delete-portfolio-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const id = btn.getAttribute('data-id');
                 if (confirm('Tem certeza de que deseja excluir este item do portfólio?')) {
-                    const updated = portfolio.filter(p => p.id !== id);
-                    setStoredData(STORAGE_KEYS.PORTFOLIO, updated);
+                    portfolioData = portfolioData.filter(p => p.id !== id);
                     renderAdminPortfolio();
-                    showToast('Item removido com sucesso!');
+                    try {
+                        await saveCloudData({ portfolio: portfolioData });
+                        showToast('Item removido com sucesso!');
+                    } catch (err) {
+                        alert('Erro ao sincronizar exclusão com a nuvem: ' + err.message);
+                    }
                 }
             });
         });
@@ -730,11 +829,11 @@ function initAdminPanel() {
                     <div class="form-row">
                         <div class="form-group">
                             <label>Categoria</label>
-                            <input type="text" id="new-port-category" class="form-control" placeholder="Ex: Prototipagem, Colecionáveis">
+                            <input type="text" id="new-port-category" class="form-control" placeholder="Ex: Prototipagem, Decoração">
                         </div>
                         <div class="form-group">
                             <label>Material</label>
-                            <input type="text" id="new-port-material" class="form-control" placeholder="Ex: PETG, Resina 8K, ABS">
+                            <input type="text" id="new-port-material" class="form-control" placeholder="Ex: PLA, PETG, ABS">
                         </div>
                     </div>
 
@@ -769,7 +868,7 @@ function initAdminPanel() {
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" id="btn-cancel-new-port">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Adicionar ao Portfólio</button>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-new-port">Adicionar ao Portfólio</button>
                     </div>
                 </form>
             `);
@@ -817,8 +916,12 @@ function initAdminPanel() {
             });
 
             document.getElementById('btn-cancel-new-port').addEventListener('click', closeModal);
-            document.getElementById('form-add-portfolio').addEventListener('submit', (e) => {
+            document.getElementById('form-add-portfolio').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const submitBtn = document.getElementById('btn-submit-new-port');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Enviando para a nuvem...';
+
                 const newItem = {
                     id: 'port-' + Date.now(),
                     title: document.getElementById('new-port-title').value.trim(),
@@ -828,12 +931,21 @@ function initAdminPanel() {
                     description: document.getElementById('new-port-desc').value.trim()
                 };
 
-                const portfolio = getStoredData(STORAGE_KEYS.PORTFOLIO, DEFAULT_DATA.portfolio);
-                portfolio.unshift(newItem);
-                setStoredData(STORAGE_KEYS.PORTFOLIO, portfolio);
-                closeModal();
+                portfolioData.unshift(newItem);
                 renderAdminPortfolio();
-                showToast('Item adicionado ao portfólio com sucesso!');
+
+                try {
+                    await saveCloudData({ portfolio: portfolioData });
+                    closeModal();
+                    showToast('Item adicionado ao portfólio na nuvem com sucesso!');
+                } catch (err) {
+                    console.error('Erro ao adicionar na nuvem:', err);
+                    alert('Item salvo no cache local, mas falhou ao enviar para a nuvem: ' + err.message);
+                    closeModal();
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Adicionar ao Portfólio';
+                }
             });
         });
     }
@@ -845,17 +957,15 @@ function initAdminPanel() {
         const tableBody = document.getElementById('admin-services-table-body');
         if (!tableBody) return;
 
-        const services = getStoredData(STORAGE_KEYS.SERVICES, DEFAULT_DATA.services);
-
-        if (services.length === 0) {
+        if (servicesData.length === 0) {
             tableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Nenhum serviço cadastrado.</td></tr>`;
             return;
         }
 
-        tableBody.innerHTML = services.map(srv => `
+        tableBody.innerHTML = servicesData.map(srv => `
             <tr>
-                <td><strong>${srv.title}</strong></td>
-                <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${srv.description}</td>
+                <td><strong>${escapeHtml(srv.title)}</strong></td>
+                <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(srv.description)}</td>
                 <td>${srv.items ? srv.items.length : 0} tópico(s)</td>
                 <td>
                     <div class="admin-actions">
@@ -870,7 +980,7 @@ function initAdminPanel() {
         tableBody.querySelectorAll('.edit-service-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.getAttribute('data-id');
-                const srv = services.find(s => s.id === id);
+                const srv = servicesData.find(s => s.id === id);
                 if (!srv) return;
 
                 const itemsText = (srv.items || []).join('\n');
@@ -879,48 +989,65 @@ function initAdminPanel() {
                     <form id="form-edit-service">
                         <div class="form-group">
                             <label>Título do Serviço *</label>
-                            <input type="text" id="edit-srv-title" class="form-control" value="${srv.title}" required>
+                            <input type="text" id="edit-srv-title" class="form-control" value="${escapeHtml(srv.title)}" required>
                         </div>
                         <div class="form-group">
                             <label>Descrição Geral *</label>
-                            <textarea id="edit-srv-desc" class="form-control" required>${srv.description}</textarea>
+                            <textarea id="edit-srv-desc" class="form-control" required>${escapeHtml(srv.description)}</textarea>
                         </div>
                         <div class="form-group">
                             <label>Tópicos / Especificações (um por linha)</label>
-                            <textarea id="edit-srv-items" class="form-control" rows="4" placeholder="Digite cada detalhe em uma linha">${itemsText}</textarea>
+                            <textarea id="edit-srv-items" class="form-control" rows="4" placeholder="Digite cada detalhe em uma linha">${escapeHtml(itemsText)}</textarea>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" id="btn-cancel-srv">Cancelar</button>
-                            <button type="submit" class="btn btn-primary">Salvar Serviço</button>
+                            <button type="submit" class="btn btn-primary" id="btn-submit-edit-srv">Salvar Serviço</button>
                         </div>
                     </form>
                 `);
 
                 document.getElementById('btn-cancel-srv').addEventListener('click', closeModal);
-                document.getElementById('form-edit-service').addEventListener('submit', (e) => {
+                document.getElementById('form-edit-service').addEventListener('submit', async (e) => {
                     e.preventDefault();
+                    const submitBtn = document.getElementById('btn-submit-edit-srv');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Salvando na nuvem...';
+
                     srv.title = document.getElementById('edit-srv-title').value.trim();
                     srv.description = document.getElementById('edit-srv-desc').value.trim();
                     const rawItems = document.getElementById('edit-srv-items').value.split('\n');
                     srv.items = rawItems.map(i => i.trim()).filter(i => i.length > 0);
 
-                    setStoredData(STORAGE_KEYS.SERVICES, services);
-                    closeModal();
-                    renderAdminServices();
-                    showToast('Serviço atualizado com sucesso!');
+                    try {
+                        await saveCloudData({ services: servicesData });
+                        closeModal();
+                        renderAdminServices();
+                        showToast('Serviço atualizado com sucesso na nuvem!');
+                    } catch (err) {
+                        alert('Serviço atualizado no cache local: ' + err.message);
+                        closeModal();
+                        renderAdminServices();
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Salvar Serviço';
+                    }
                 });
             });
         });
 
         // Eventos de Excluir Serviço
         tableBody.querySelectorAll('.delete-service-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const id = btn.getAttribute('data-id');
                 if (confirm('Tem certeza de que deseja excluir este serviço?')) {
-                    const updated = services.filter(s => s.id !== id);
-                    setStoredData(STORAGE_KEYS.SERVICES, updated);
+                    servicesData = servicesData.filter(s => s.id !== id);
                     renderAdminServices();
-                    showToast('Serviço removido com sucesso!');
+                    try {
+                        await saveCloudData({ services: servicesData });
+                        showToast('Serviço removido com sucesso!');
+                    } catch (err) {
+                        alert('Erro ao sincronizar exclusão: ' + err.message);
+                    }
                 }
             });
         });
@@ -934,7 +1061,7 @@ function initAdminPanel() {
                 <form id="form-add-service">
                     <div class="form-group">
                         <label>Título do Serviço *</label>
-                        <input type="text" id="new-srv-title" class="form-control" placeholder="Ex: 4. Escaneamento 3D" required>
+                        <input type="text" id="new-srv-title" class="form-control" placeholder="Ex: 2. Modelagem 3D Sob Medida" required>
                     </div>
                     <div class="form-group">
                         <label>Descrição Geral *</label>
@@ -942,18 +1069,22 @@ function initAdminPanel() {
                     </div>
                     <div class="form-group">
                         <label>Tópicos / Especificações (um por linha)</label>
-                        <textarea id="new-srv-items" class="form-control" rows="4" placeholder="Ex:\nDigitalização de peças físicas\nGeração de malha 3D (.STL)\nInspeção dimensional"></textarea>
+                        <textarea id="new-srv-items" class="form-control" rows="4" placeholder="Ex:\nCriação de arquivos 3D\nExportação STL\nAjuste dimensional"></textarea>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" id="btn-cancel-new-srv">Cancelar</button>
-                        <button type="submit" class="btn btn-primary">Adicionar Serviço</button>
+                        <button type="submit" class="btn btn-primary" id="btn-submit-new-srv">Adicionar Serviço</button>
                     </div>
                 </form>
             `);
 
             document.getElementById('btn-cancel-new-srv').addEventListener('click', closeModal);
-            document.getElementById('form-add-service').addEventListener('submit', (e) => {
+            document.getElementById('form-add-service').addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const submitBtn = document.getElementById('btn-submit-new-srv');
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Adicionando...';
+
                 const rawItems = document.getElementById('new-srv-items').value.split('\n');
                 const newService = {
                     id: 'serv-' + Date.now(),
@@ -962,12 +1093,20 @@ function initAdminPanel() {
                     items: rawItems.map(i => i.trim()).filter(i => i.length > 0)
                 };
 
-                const services = getStoredData(STORAGE_KEYS.SERVICES, DEFAULT_DATA.services);
-                services.push(newService);
-                setStoredData(STORAGE_KEYS.SERVICES, services);
-                closeModal();
+                servicesData.push(newService);
                 renderAdminServices();
-                showToast('Novo serviço cadastrado com sucesso!');
+
+                try {
+                    await saveCloudData({ services: servicesData });
+                    closeModal();
+                    showToast('Novo serviço cadastrado na nuvem com sucesso!');
+                } catch (err) {
+                    alert('Salvo no cache local: ' + err.message);
+                    closeModal();
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Adicionar Serviço';
+                }
             });
         });
     }
@@ -979,10 +1118,8 @@ function initAdminPanel() {
         const tableBody = document.getElementById('admin-quotes-table-body');
         if (!tableBody) return;
 
-        const quotes = getStoredData(STORAGE_KEYS.QUOTES, DEFAULT_DATA.quotes);
-
-        if (quotes.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Nenhum orçamento recebido até o momento.</td></tr>`;
+        if (quotesData.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Nenhum orçamento recebido até o momento.</td></tr>`;
             return;
         }
 
@@ -992,13 +1129,13 @@ function initAdminPanel() {
             return 'status-pendente';
         }
 
-        tableBody.innerHTML = quotes.map(q => `
+        tableBody.innerHTML = quotesData.map(q => `
             <tr>
-                <td><small style="color: var(--text-muted);">${q.date || '-'}</small></td>
-                <td><strong>${q.name}</strong></td>
-                <td>${q.phone || '-'}<br><small style="color: var(--text-muted);">${q.email}</small></td>
-                <td>${q.serviceType || 'Geral'}</td>
-                <td><span class="status-badge ${getStatusBadgeClass(q.status)}">${q.status || 'Pendente'}</span></td>
+                <td><small style="color: var(--text-muted);">${escapeHtml(q.date || '-')}</small></td>
+                <td><strong>${escapeHtml(q.name)}</strong></td>
+                <td>${escapeHtml(q.phone || '-')}<br><small style="color: var(--text-muted);">${escapeHtml(q.email)}</small></td>
+                <td>${escapeHtml(q.serviceType || 'Geral')}</td>
+                <td><span class="status-badge ${getStatusBadgeClass(q.status)}">${escapeHtml(q.status || 'Pendente')}</span></td>
                 <td>
                     <div class="admin-actions">
                         <button class="btn btn-secondary btn-sm view-quote-btn" data-id="${q.id}">Ver Detalhes</button>
@@ -1012,40 +1149,41 @@ function initAdminPanel() {
         tableBody.querySelectorAll('.view-quote-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const id = btn.getAttribute('data-id');
-                const quote = quotes.find(q => q.id === id);
+                const quote = quotesData.find(q => q.id === id);
                 if (!quote) return;
+
+                const phoneDigits = (quote.phone || '').replace(/\D/g, '');
+                const waLink = phoneDigits.length >= 10 ? `https://wa.me/55${phoneDigits}` : '#';
 
                 openModal(`Orçamento #${quote.id}`, `
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
                         <div>
                             <span style="color: var(--text-muted); font-size: 0.85rem;">Data da Solicitação:</span>
-                            <p><strong>${quote.date}</strong></p>
+                            <p><strong>${escapeHtml(quote.date)}</strong></p>
                         </div>
                         <div class="form-row">
                             <div>
                                 <span style="color: var(--text-muted); font-size: 0.85rem;">Cliente:</span>
-                                <p><strong>${quote.name}</strong></p>
+                                <p><strong>${escapeHtml(quote.name)}</strong></p>
                             </div>
                             <div>
                                 <span style="color: var(--text-muted); font-size: 0.85rem;">Telefone / WhatsApp:</span>
-                                <p><a href="https://wa.me/55${(quote.phone || '').replace(/\D/g, '')}" target="_blank" style="color: #38bdf8; text-decoration: none;">${quote.phone} ↗</a></p>
+                                <p><a href="${waLink}" target="_blank" style="color: #38bdf8; text-decoration: none;">${escapeHtml(quote.phone)} ↗</a></p>
                             </div>
                         </div>
                         <div class="form-row">
                             <div>
                                 <span style="color: var(--text-muted); font-size: 0.85rem;">E-mail:</span>
-                                <p><a href="mailto:${quote.email}" style="color: #38bdf8; text-decoration: none;">${quote.email}</a></p>
+                                <p><a href="mailto:${escapeHtml(quote.email)}" style="color: #38bdf8; text-decoration: none;">${escapeHtml(quote.email)}</a></p>
                             </div>
                             <div>
                                 <span style="color: var(--text-muted); font-size: 0.85rem;">Serviço / Material:</span>
-                                <p>${quote.serviceType} | ${quote.material || 'Padrão'}</p>
+                                <p>${escapeHtml(quote.serviceType)} | ${escapeHtml(quote.material || 'Padrão')}</p>
                             </div>
                         </div>
                         <div>
                             <span style="color: var(--text-muted); font-size: 0.85rem;">Descrição do Projeto:</span>
-                            <div style="background-color: var(--bg-surface); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin-top: 0.3rem;">
-                                ${quote.message.replace(/\n/g, '<br>')}
-                            </div>
+                            <div style="background-color: var(--bg-surface); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); margin-top: 0.3rem; white-space: pre-wrap;">${escapeHtml(quote.message)}</div>
                         </div>
                         <div class="form-group" style="margin-top: 0.5rem;">
                             <label>Alterar Status do Orçamento:</label>
@@ -1063,26 +1201,35 @@ function initAdminPanel() {
                 `);
 
                 document.getElementById('btn-close-quote-view').addEventListener('click', closeModal);
-                document.getElementById('btn-save-quote-status').addEventListener('click', () => {
+                document.getElementById('btn-save-quote-status').addEventListener('click', async () => {
                     const newStatus = document.getElementById('change-quote-status').value;
                     quote.status = newStatus;
-                    setStoredData(STORAGE_KEYS.QUOTES, quotes);
-                    closeModal();
                     renderAdminQuotes();
-                    showToast('Status do orçamento atualizado!');
+                    try {
+                        await saveCloudData({ quotes: quotesData });
+                        closeModal();
+                        showToast('Status do orçamento atualizado na nuvem!');
+                    } catch (err) {
+                        alert('Atualizado localmente: ' + err.message);
+                        closeModal();
+                    }
                 });
             });
         });
 
         // Evento Excluir Orçamento
         tableBody.querySelectorAll('.delete-quote-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', async () => {
                 const id = btn.getAttribute('data-id');
                 if (confirm('Tem certeza de que deseja excluir este pedido de orçamento?')) {
-                    const updated = quotes.filter(q => q.id !== id);
-                    setStoredData(STORAGE_KEYS.QUOTES, updated);
+                    quotesData = quotesData.filter(q => q.id !== id);
                     renderAdminQuotes();
-                    showToast('Orçamento excluído com sucesso!');
+                    try {
+                        await saveCloudData({ quotes: quotesData });
+                        showToast('Orçamento excluído com sucesso!');
+                    } catch (err) {
+                        alert('Erro ao excluir na nuvem: ' + err.message);
+                    }
                 }
             });
         });
@@ -1091,15 +1238,24 @@ function initAdminPanel() {
     // Botão de Restaurar Dados Padrão
     const resetDataBtn = document.getElementById('btn-reset-defaults');
     if (resetDataBtn) {
-        resetDataBtn.addEventListener('click', () => {
-            if (confirm('Atenção: Isso irá redefinir os serviços, portfólio e orçamentos para os dados de exemplo padrão. Deseja continuar?')) {
-                setStoredData(STORAGE_KEYS.PORTFOLIO, DEFAULT_DATA.portfolio);
-                setStoredData(STORAGE_KEYS.SERVICES, DEFAULT_DATA.services);
-                setStoredData(STORAGE_KEYS.QUOTES, DEFAULT_DATA.quotes);
+        resetDataBtn.addEventListener('click', async () => {
+            if (confirm('Atenção: Isso irá redefinir os serviços, portfólio e orçamentos para os dados de exemplo padrão na nuvem. Deseja continuar?')) {
+                portfolioData = DEFAULT_DATA.portfolio;
+                servicesData = DEFAULT_DATA.services;
+                quotesData = [];
                 renderAdminPortfolio();
                 renderAdminServices();
                 renderAdminQuotes();
-                showToast('Dados restaurados para o padrão!');
+                try {
+                    await saveCloudData({
+                        portfolio: DEFAULT_DATA.portfolio,
+                        services: DEFAULT_DATA.services,
+                        quotes: []
+                    });
+                    showToast('Dados restaurados para o padrão na nuvem!');
+                } catch (err) {
+                    alert('Restaurado no cache local: ' + err.message);
+                }
             }
         });
     }
@@ -1112,10 +1268,7 @@ function initAdminPanel() {
 // INICIALIZAÇÃO GERAL
 // ==========================================================================
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Inicializa o storage
-    initDataStorage();
-
-    // 2. Menu Hambúrguer (Mobile)
+    // 1. Menu Hambúrguer (Mobile)
     const hamburgerBtn = document.getElementById('hamburger-btn');
     const navbar = document.getElementById('navbar');
 
@@ -1148,11 +1301,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. Renderiza dados públicos
+    // 2. Renderiza dados públicos (com sincronização da nuvem)
     renderPublicPortfolio();
     renderPublicServices();
     initQuoteForm();
 
-    // 4. Inicializa o painel administrativo caso presente na página
+    // 3. Inicializa o painel administrativo caso presente na página
     initAdminPanel();
 });
